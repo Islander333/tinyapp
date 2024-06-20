@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/Islander333/tinyapp/issues"
   },
-  "homepage": "https://github.com/Islander333/tinyapp#readme"
+  "homepage": "https://github.com/Islander333/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
 }
