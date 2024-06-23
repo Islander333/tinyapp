@@ -32,7 +32,7 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
-//route to display a URL and details
+//route to display URL ID details
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   const longURL = urlDatabase[id];
