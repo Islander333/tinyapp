@@ -21,15 +21,18 @@ function generateRandomString() {
   return result;
 };
 
+//route to display URLs
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
+//route to show form to create URL
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
+//route to display a URL and details
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   const longURL = urlDatabase[id];
@@ -37,6 +40,7 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+//route to make a new short URL
 app.post("/urls", (req, res) => {
   //get long URL and generate random short URL
   const longURL = req.body.longURL;
@@ -47,6 +51,7 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
+//route to handle URL redirection
 app.get("/u/:id", (req, res) => {
   //get id from req
   const id = req.params.id;
@@ -61,16 +66,26 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
+//home route
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+//JSON endpoint
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+//hello route
 app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+//route for URL deletion
+app.post("/urls/:id/delete", (req, res) => {
+  const id = req.params.id;
+  delete urlDatabase[id];
+  res.redirect("/urls");
 });
 
 app.listen(PORT, () => {
