@@ -1,8 +1,10 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 app.set("view engine", "ejs");
 
@@ -23,20 +25,30 @@ function generateRandomString() {
 
 //route to display URLs
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { 
+    username: req.cookies["username"] || "",
+    urls: urlDatabase
+   };
   res.render("urls_index", templateVars);
 });
 
 //route to show form to create URL
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = {
+    username: req.cookies["username"] || ""
+  }
+  res.render("urls_new", templateVars);
 });
 
 //route to display URL ID details
 app.get("/urls/:id", (req, res) => {
   const id = req.params.id;
   const longURL = urlDatabase[id];
-  const templateVars = { id, longURL };
+  const templateVars = { 
+    username: req.cookies["username"] || "",
+    id, 
+    longURL 
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -68,7 +80,8 @@ app.get("/u/:id", (req, res) => {
 
 //home route
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  const templateVars = { username: req.cookies["username"] || ""};
+  res.render("index", templateVars);
 });
 
 //JSON endpoint
@@ -78,6 +91,7 @@ app.get("/urls.json", (req, res) => {
 
 //hello route
 app.get("/hello", (req, res) => {
+  const templateVars = { username: req.cookies["username"] || "" };
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
