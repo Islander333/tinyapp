@@ -110,7 +110,7 @@ app.get("/u/:id", (req, res) => {
 
 //home route
 app.get("/", (req, res) => {
-  const templateVars = { username: req.cookies["username"] || ""};
+  const templateVars = { user: users[req.cookies.user_id] || ""};
   res.render("index", templateVars);
 });
 
@@ -121,7 +121,7 @@ app.get("/urls.json", (req, res) => {
 
 //hello route
 app.get("/hello", (req, res) => {
-  const templateVars = { username: req.cookies["username"] || "" };
+  const templateVars = { user: users[req.cookies.user_id] || "" };
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
@@ -142,15 +142,21 @@ app.post("/urls/:id/update", (req, res) => {
 
 //get /login endpoint
 app.get("/login", (req, res) => {
-  res.render("login");
-})
+  const userId = req.cookies.user_id;
+  const user = users[userId];
+  const templateVars = {
+    user
+  };
+  res.render("login", templateVars);
+});
 
 //ROUTE FOR LOGIN
 app.post("/login", (req, res) => {
   const email = req.body.email;
+  //use user/pword fields
   const password = req.body.password
   const user = getUserByEmail(email);
-
+//authenticate + set cookie + redirect
   if (user && user.password === password) {
     res.cookie('user_id', user.id);
     res.redirect('/urls');
@@ -161,8 +167,8 @@ app.post("/login", (req, res) => {
 
 //route for logout
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
-  res.redirect('/urls');
+  res.clearCookie('user_id');
+  res.redirect('/login');
 });
 
 //ROUTE FOR REGISTRATION
@@ -170,27 +176,33 @@ app.get("/register", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
   const templateVars = {
-    user
+    user,
+    error: null
   };
   res.render("register", templateVars);
 });
 
-//post /regist endpoint to handle registration form data
+//post /register endpoint 
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
   //check for empty email or pword
   if (!email || !password) {
-    return res.status(400).send("Email and password cannot be empty")
+    return res.status(400).render("register", {
+      user: null,
+      error: "Email and password fields cannot be empty"
+    });
   }
 
-  //check if email already exists
-  for (const userId in users) {
-    if (users[userId].email === email) {
-      return res.status(400).send("Email already exists");
-    }
-  }
+  //check if email exists
+ const currentUser = getUserByEmail(email);
+ if (currentUser) {
+  return res.status(400).render("register", {
+    user: null, //add to make sure user is defined before rendering
+    error: "Email already exists."
+  });
+ }
 
   //genereate random user id
   const userId = generateRandomString();
