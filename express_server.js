@@ -57,6 +57,7 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+
 //route to show form to create URL
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies.user_id;
@@ -138,6 +139,11 @@ app.post("/urls/:id/update", (req, res) => {
   urlDatabase[id] = newLongURL;
   res.redirect(`/urls/${id}`);
 });
+
+//get /login endpoint
+app.get("/login", (req, res) => {
+  res.render("login");
+})
 
 //ROUTE FOR LOGIN
 app.post("/login", (req, res) => {
