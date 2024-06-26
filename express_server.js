@@ -13,6 +13,19 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com",
 };
 
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
+};
+
 //generate random string of 6 characters
 function generateRandomString() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -23,29 +36,35 @@ function generateRandomString() {
   return result;
 };
 
-//route to display URLs
+//ROUTE TO DISPLAY URLS
 app.get("/urls", (req, res) => {
-  const templateVars = { 
-    username: req.cookies["username"] || "",
+  const userId = req.cookies.user_id;
+  const user = users[userId];
+  const templateVars = {
+    user,
     urls: urlDatabase
-   };
+  };
   res.render("urls_index", templateVars);
 });
 
 //route to show form to create URL
 app.get("/urls/new", (req, res) => {
+  const userId = req.cookies.user_id;
+  const user = users[userId];
   const templateVars = {
-    username: req.cookies["username"] || ""
+    user
   }
   res.render("urls_new", templateVars);
 });
 
 //route to display URL ID details
 app.get("/urls/:id", (req, res) => {
+  const userId = req.cookies.user_id;
+  const user = users[userId];
   const id = req.params.id;
   const longURL = urlDatabase[id];
   const templateVars = { 
-    username: req.cookies["username"] || "",
+    user,
     id, 
     longURL 
   };
@@ -110,12 +129,18 @@ app.post("/urls/:id/update", (req, res) => {
   res.redirect(`/urls/${id}`);
 });
 
-//route for login
+//ROUTE FOR LOGIN
 app.post("/login", (req, res) => {
   const username = req.body.username;
-  res.cookie('username', username);
-  res.redirect('/urls');
-});
+  const user = findUserByEmail(username)
+
+  if (user) {
+    res.cookie('user_id', user.id);
+    res.redirect('urls');
+  } else {
+    res.status(401).send("User not found")
+  }
+  });
 
 //route for logout
 app.post("/logout", (req, res) => {
@@ -123,13 +148,48 @@ app.post("/logout", (req, res) => {
   res.redirect('/urls');
 });
 
-//route for registration
+//ROUTE FOR REGISTRATION
 app.get("/register", (req, res) => {
+  const userId = req.cookies.user_id;
+  const user = users[userId];
   const templateVars = {
-    username: req.cookies["username"] || ""
+    user
   };
   res.render("register", templateVars);
 });
+
+//post /regist endpoint to handle registration form data
+app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  //check if email already exists
+  for (const userId in users) {
+    if (users[userId].email === email) {
+      return res.status(400).send("Email already exists");
+    }
+  }
+
+  //genereate random user id
+  const userId = generateRandomString();
+
+  //add new user to users object
+  users[userId] = {
+    id: userId,
+    email: email,
+    password: password,
+  };
+
+  //set user_id cookie w/ user's new Id
+  res.cookie('user_id', userId);
+
+  //users object testing/debugging
+  console.log('Users:', users);
+  console.log('User ID cookie:', req.cookies['user_id']);
+
+  //redirect
+  res.redirect('/urls');
+})
 
 
 app.listen(PORT, () => {
