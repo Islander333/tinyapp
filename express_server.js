@@ -103,18 +103,17 @@ app.post("/urls", (req, res) => {
 
 //route to handle URL redirection
 app.get("/u/:id", (req, res) => {
-  //get id from req
-  const id = req.params.id;
+  //get shortUR: from req
+  const shortURL = req.params.id;
   //look up longURL in database
-  const longURL = urlDatabase[id];
-  //redirect to longURL if found
-  if (longURL) {
-    res.redirect(longURL);
-    //add error handling
-  } else {
-    res.status(404).send("error: no short URL")
+  const longURL = urlDatabase[shortURL];
+  //check is shortURL exists
+  if (!longURL) {
+    return res.status(404).send("<html><body><h3>404 Error: short URL does not exist.</h3></body></html>")
   }
-});
+  //redirect to longURL if found
+    res.redirect(longURL);
+    });
 
 //home route
 app.get("/", (req, res) => {
