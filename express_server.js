@@ -36,6 +36,16 @@ function generateRandomString() {
   return result;
 };
 
+//function to find user by email
+function getUserByEmail(email) {
+  for (const userId in users) {
+    if (users[userId].email === email) {
+      return users[userId];
+    }
+  }
+  return null;
+}
+
 //ROUTE TO DISPLAY URLS
 app.get("/urls", (req, res) => {
   const userId = req.cookies.user_id;
@@ -131,12 +141,13 @@ app.post("/urls/:id/update", (req, res) => {
 
 //ROUTE FOR LOGIN
 app.post("/login", (req, res) => {
-  const username = req.body.username;
-  const user = findUserByEmail(username)
+  const email = req.body.email;
+  const password = req.body.password
+  const user = getUserByEmail(email);
 
-  if (user) {
+  if (user && user.password === password) {
     res.cookie('user_id', user.id);
-    res.redirect('urls');
+    res.redirect('/urls');
   } else {
     res.status(401).send("User not found")
   }
@@ -162,6 +173,11 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+
+  //check for empty email or pword
+  if (!email || !password) {
+    return res.status(400).send("Email and password cannot be empty")
+  }
 
   //check if email already exists
   for (const userId in users) {
