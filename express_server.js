@@ -62,6 +62,9 @@ app.get("/urls", (req, res) => {
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
+  if (!user) {
+    res.redirect("/login")
+  }
   const templateVars = {
     user
   }
@@ -84,6 +87,11 @@ app.get("/urls/:id", (req, res) => {
 
 //route to make a new short URL
 app.post("/urls", (req, res) => {
+  const userId = req.cookies.user_id;
+  const user = users[userId];
+  if (!user) {
+    return res.status(403).send("Only registered and loggin-in users can create short URLs")
+  }
   //get long URL and generate random short URL
   const longURL = req.body.longURL;
   const shortURL = generateRandomString();
@@ -143,10 +151,10 @@ app.post("/urls/:id/update", (req, res) => {
 //get /login endpoint
 app.get("/login", (req, res) => {
   const userId = req.cookies.user_id;
-  const user = users[userId];
-  const templateVars = {
-    user
-  };
+  if (userId && users[userId]) {
+    return res.redirect("/urls")
+  }
+  const templateVars = { user: null };
   res.render("login", templateVars);
 });
 
@@ -174,11 +182,10 @@ app.post("/logout", (req, res) => {
 //ROUTE FOR REGISTRATION
 app.get("/register", (req, res) => {
   const userId = req.cookies.user_id;
-  const user = users[userId];
-  const templateVars = {
-    user,
-    error: null
-  };
+  if (userId && users[userId]) {
+    return res.redirect("/urls");
+  }
+  const templateVars = { user: null, error: null };
   res.render("register", templateVars);
 });
 
