@@ -9,8 +9,14 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 
 const urlDatabase = {
-  b2xVn2: "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com",
+  b2xVn2: {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "userRandomID",
+  },
+  "9sm5xK": {
+    longURL: "http://www.google.com",
+    userID: "user2RandomID",
+  },
 };
 
 const users = {
@@ -50,9 +56,16 @@ function getUserByEmail(email) {
 app.get("/urls", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
+  //filter URLs for logged in user
+  const userURLs = {};
+  for (const id in urlDatabase) {
+    if (urlDatabase[id].userID === userId) {
+      userURLs[id] = urlDatabase[id];
+    }
+  }
   const templateVars = {
     user,
-    urls: urlDatabase
+    urls: userURLs
   };
   res.render("urls_index", templateVars);
 });
@@ -64,6 +77,7 @@ app.get("/urls/new", (req, res) => {
   const user = users[userId];
   if (!user) {
     res.redirect("/login")
+    return;
   }
   const templateVars = {
     user
@@ -76,11 +90,15 @@ app.get("/urls/:id", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
   const id = req.params.id;
-  const longURL = urlDatabase[id];
+  //display url id details
+  const urlData = urlDatabase[id];
+  if (!urlData || urlData.userID !== userId) {
+    return res.status(403).send("This url is taken")
+  }
   const templateVars = { 
     user,
     id, 
-    longURL 
+    longURL: urlData.longURL
   };
   res.render("urls_show", templateVars);
 });
@@ -90,13 +108,16 @@ app.post("/urls", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
   if (!user) {
-    return res.status(403).send("Only registered and loggin-in users can create short URLs")
+    return res.status(403).send("Only registered and logged in users can create short URLs")
   }
   //get long URL and generate random short URL
   const longURL = req.body.longURL;
   const shortURL = generateRandomString();
   //save both to URL database
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = {
+    longURL,
+    userID: userId
+  };
   //redirect to page that shows shortURL now
   res.redirect(`/urls/${shortURL}`);
 });
@@ -106,13 +127,13 @@ app.get("/u/:id", (req, res) => {
   //get shortUR: from req
   const shortURL = req.params.id;
   //look up longURL in database
-  const longURL = urlDatabase[shortURL];
+  const urlData = urlDatabase[shortURL];
   //check is shortURL exists
-  if (!longURL) {
+  if (!urlData) {
     return res.status(404).send("<html><body><h3>404 Error: short URL does not exist.</h3></body></html>")
   }
   //redirect to longURL if found
-    res.redirect(longURL);
+    res.redirect(urlData.longURL);
     });
 
 //home route
@@ -134,16 +155,27 @@ app.get("/hello", (req, res) => {
 
 //route for URL deletion
 app.post("/urls/:id/delete", (req, res) => {
+  const userId = req.cookies.user_id;
   const id = req.params.id;
+  const urlData = urlDatabase[id];
+  if (!urlData || urlData.userID !== userId) {
+    return res.status(403).send("Access denied. This URL is taken.")
+  }
   delete urlDatabase[id];
   res.redirect("/urls");
 });
 
 //route for URL update
 app.post("/urls/:id/update", (req, res) => {
+  const userId = req.cookies.user_id;
   const id = req.params.id
+  const urlData = urlDatabase[id];
+  if (!urlData || urlData.userID !== userId) {
+    return res.status(403).send("This url is taken.")
+  }
+
   const newLongURL = req.body.longURL;
-  urlDatabase[id] = newLongURL;
+  urlDatabase[id].longURL = newLongURL;
   res.redirect(`/urls/${id}`);
 });
 
@@ -211,17 +243,17 @@ app.post("/register", (req, res) => {
  }
 
   //genereate random user id
-  const userId = generateRandomString();
+  const newUserId = generateRandomString();
 
   //add new user to users object
-  users[userId] = {
-    id: userId,
+  users[newUserId] = {
+    id: newUserId,
     email: email,
     password: password,
   };
 
   //set user_id cookie w/ user's new Id
-  res.cookie('user_id', userId);
+  res.cookie('user_id', newUserId);
 
   //users object testing/debugging
   console.log('Users:', users);
