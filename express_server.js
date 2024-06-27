@@ -52,12 +52,31 @@ function getUserByEmail(email) {
   return null;
 }
 
+//function to filter urls by userid
+function urlsById(id) {
+  const userURLs = {};
+  for (const shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === id) {
+      userURLs[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return userURLs;
+}
+
 //ROUTE TO DISPLAY URLS
 app.get("/urls", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
+  //check to see if user is loggin in
+  if (!user) {
+    const templateVars = {
+      user: null,
+      error: "You must be logged in to view URLs."
+    };
+    return res.render("urls_index", templateVars);
+  }
   //filter URLs for logged in user
-  const userURLs = {};
+  const userURLs = urlsById(userId);
   for (const id in urlDatabase) {
     if (urlDatabase[id].userID === userId) {
       userURLs[id] = urlDatabase[id];
@@ -65,7 +84,8 @@ app.get("/urls", (req, res) => {
   }
   const templateVars = {
     user,
-    urls: userURLs
+    urls: userURLs,
+    error: null
   };
   res.render("urls_index", templateVars);
 });
@@ -91,7 +111,13 @@ app.get("/urls/:id", (req, res) => {
   const user = users[userId];
   const id = req.params.id;
   //display url id details
-  const urlData = urlDatabase[id];
+  const shortURL = req.params.id;
+  const urlData = urlDatabase[shortURL];
+
+  if (!user) {
+    return res.status(401).send("Must be logged in to view URL")
+  }
+
   if (!urlData || urlData.userID !== userId) {
     return res.status(403).send("This url is taken")
   }
