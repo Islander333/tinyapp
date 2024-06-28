@@ -9,13 +9,13 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 
 const urlDatabase = {
-  b2xVn2: {
-    longURL: "http://www.lighthouselabs.ca",
-    userID: "userRandomID",
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
   },
-  "9sm5xK": {
-    longURL: "http://www.google.com",
-    userID: "user2RandomID",
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
   },
 };
 
@@ -56,39 +56,47 @@ function getUserByEmail(email) {
 function urlsById(id) {
   const userURLs = {};
   for (const shortURL in urlDatabase) {
-    if (urlDatabase[shortURL].userID === id) {
-      userURLs[shortURL] = urlDatabase[shortURL];
+    if (urlDatabase.hasOwnProperty(shortURL)) {
+      if (urlDatabase[shortURL].userID === id) {
+        userURLs[shortURL] = urlDatabase[shortURL];
+      }
     }
   }
   return userURLs;
 }
 
-//ROUTE TO DISPLAY URLS
+//get /urls route
 app.get("/urls", (req, res) => {
   const userId = req.cookies.user_id;
   const user = users[userId];
-  //check to see if user is loggin in
+
+  // Check if user is logged in
   if (!user) {
     const templateVars = {
       user: null,
+      urls: {},
       error: "You must be logged in to view URLs."
     };
     return res.render("urls_index", templateVars);
   }
-  //filter URLs for logged in user
-  const userURLs = urlsById(userId);
-  for (const id in urlDatabase) {
-    if (urlDatabase[id].userID === userId) {
-      userURLs[id] = urlDatabase[id];
-    }
-  }
+
+  // Get URLs for logged-in user
+  const urls = urlsById(userId) || {};
+
+  // Ensure urls is defined even if empty
   const templateVars = {
     user,
-    urls: userURLs,
+    urls: urls || {},
     error: null
   };
+
+  // Render the urls_index.ejs template with templateVars
   res.render("urls_index", templateVars);
 });
+
+
+
+
 
 
 //route to show form to create URL
@@ -184,8 +192,14 @@ app.post("/urls/:id/delete", (req, res) => {
   const userId = req.cookies.user_id;
   const id = req.params.id;
   const urlData = urlDatabase[id];
+
+  //check if user is logged in 
+  if (!userId || !users[userId]) {
+    return res.status(401).send("You must be logged in to delete urls")
+  }
+
   if (!urlData || urlData.userID !== userId) {
-    return res.status(403).send("Access denied. This URL is taken.")
+    return res.status(403).send("Access denied. You cannot delete this URL.")
   }
   delete urlDatabase[id];
   res.redirect("/urls");
@@ -196,8 +210,14 @@ app.post("/urls/:id/update", (req, res) => {
   const userId = req.cookies.user_id;
   const id = req.params.id
   const urlData = urlDatabase[id];
+
+  //check if user is logged in
+  if (!userId || !users[userId]) {
+    return res.status(401).send("Must be logged in to edit Urls")
+  }
+
   if (!urlData || urlData.userID !== userId) {
-    return res.status(403).send("This url is taken.")
+    return res.status(403).send("This url is taken, you cannot edit this URL.")
   }
 
   const newLongURL = req.body.longURL;
