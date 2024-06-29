@@ -2,6 +2,7 @@ const express = require("express");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs");
 const { getUserByEmail } = require("./helpers").default
+const { urlsForUser } = require("./helpers").default
 
 
 const app = express();
@@ -50,20 +51,6 @@ function generateRandomString() {
 };
 
 
-
-//function to filter urls by userid
-function urlsById(id) {
-  const userURLs = {};
-  for (const shortURL in urlDatabase) {
-    if (urlDatabase.hasOwnProperty(shortURL)) {
-      if (urlDatabase[shortURL].userID === id) {
-        userURLs[shortURL] = urlDatabase[shortURL];
-      }
-    }
-  }
-  return userURLs;
-}
-
 //get /urls route
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
@@ -80,7 +67,7 @@ app.get("/urls", (req, res) => {
   }
 
   // Get URLs for logged-in user
-  const urls = urlsById(userId) || {};
+  const urls = urlsForUser(userId) || {};
 
   // Ensure urls is defined even if empty
   const templateVars = {

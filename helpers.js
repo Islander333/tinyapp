@@ -8,3 +8,16 @@ export function getUserByEmail(email, database) {
   }
   return undefined;
 };
+
+
+
+export function urlsForUser(userID, urlDatabase) {
+  const userURLs = {};
+  for (const shortURL in urlDatabase) {
+    if (urlDatabase[shortURL].userID === userID) {
+      userURLs[shortURL] = urlDatabase[shortURL];
+    }
+  }
+  return userURLs;
+}
+
