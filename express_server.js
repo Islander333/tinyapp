@@ -1,6 +1,9 @@
 const express = require("express");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs");
+const { getUserByEmail } = require("./helper")
+
+
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -46,15 +49,7 @@ function generateRandomString() {
   return result;
 };
 
-//function to find user by email
-function getUserByEmail(email) {
-  for (const userId in users) {
-    if (users[userId].email === email) {
-      return users[userId];
-    }
-  }
-  return null;
-}
+
 
 //function to filter urls by userid
 function urlsById(id) {
@@ -246,7 +241,7 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   //use user/pword fields
   const password = req.body.password
-  const user = getUserByEmail(email);
+  const user = getUserByEmail(email, users);
 //authenticate + set cookie + redirect
   if (user && bcrypt.compareSync(password, user.password)) {
     req.session.user_id = user.id;
@@ -285,8 +280,8 @@ app.post("/register", (req, res) => {
     });
   }
 
-  //check if email exists
- const currentUser = getUserByEmail(email);
+  //check if email exists + incorporate getuserbyemail from helper.js
+ const currentUser = getUserByEmail(email, users);
  if (currentUser) {
   return res.status(400).render("register", {
     user: null, //add to make sure user is defined before rendering
