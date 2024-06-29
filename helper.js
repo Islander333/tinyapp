@@ -1,5 +1,5 @@
 //function to find user by email
-function getUserByEmail(email, database) {
+export function getUserByEmail(email, database) {
   for (const userId in database) {
     const user = database[userId];
     if (user.email === email) {
@@ -8,6 +8,3 @@ function getUserByEmail(email, database) {
   }
   return undefined;
 };
-
-
-module.exports = { getUserByEmail};
