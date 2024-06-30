@@ -1,9 +1,7 @@
-const express = require("express");
-const cookieSession = require("cookie-session");
-const bcrypt = require("bcryptjs");
-const { getUserByEmail } = require("./helpers").default
-const { urlsForUser } = require("./helpers").default
-
+import express from "express";
+import cookieSession from "cookie-session";
+import bcrypt from "bcryptjs";
+import { getUserByEmail, urlsForUser, generateRandomString } from "./helpers.js";
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -31,27 +29,17 @@ const users = {
   "userRandomID": {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur"
+    password: bcrypt.hashSync('purple-monkey-dinosaur', 10),
   },
   "user2RandomID": {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk"
+    password: bcrypt.hashSync('dishwasher-funk', 10),
   }
 };
 
-//generate random string of 6 characters
-function generateRandomString() {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result+= characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-};
 
-
-//get /urls route
+//GET /URLS ROUTE
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
@@ -61,13 +49,13 @@ app.get("/urls", (req, res) => {
     const templateVars = {
       user: null,
       urls: {},
-      error: "You must be logged in to view URLs."
+      error: "Welcome to TinyApp! Please login to view URLs."
     };
     return res.render("urls_index", templateVars);
   }
 
   // Get URLs for logged-in user
-  const urls = urlsForUser(userId) || {};
+  const urls = urlsForUser(userId, urlDatabase) || {};
 
   // Ensure urls is defined even if empty
   const templateVars = {
@@ -82,24 +70,46 @@ app.get("/urls", (req, res) => {
 
 
 
-
-
-
-//route to show form to create URL
+//GET /URLS/NEW
 app.get("/urls/new", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
-  if (!user) {
-    res.redirect("/login")
-    return;
+  if (!user) {//route for URL update
+    res.redirect("/login");
   }
   const templateVars = {
     user
-  }
+  };
   res.render("urls_new", templateVars);
 });
 
-//route to display URL ID details
+
+
+//POST FOR URLS/:ID/UPDATE
+app.post("/urls/:id/update", (req, res) => {
+  console.log("POST /urls/:id/update route hit")
+  const userId = req.session.user_id;
+  const id = req.params.id
+  const urlData = urlDatabase[id];
+    
+  console.log("req.body", req.body);
+  //check if user is logged in
+  if (!userId || !users[userId]) {
+    return res.status(401).send("Must be logged in to edit Urls")
+    }
+    
+  if (!urlData || urlData.userID !== userId) {
+    return res.status(403).send("This url is not owned by you, you cannot edit this URL.")
+    }
+    
+  const newLongURL = req.body.longURL;
+    urlDatabase[id].longURL = newLongURL;
+    res.redirect(`/urls/${id}`);
+  });
+
+
+
+  //GET /URLS/:ID ROUTE
 app.get("/urls/:id", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
@@ -112,7 +122,7 @@ app.get("/urls/:id", (req, res) => {
   }
 
   if (!urlData || urlData.userID !== userId) {
-    return res.status(403).send("This url is taken")
+    return res.status(403).send("This url is not owned by you.")
   }
   const templateVars = { 
     user,
@@ -123,7 +133,7 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-//route to make a new short URL
+//POST /URLS ROUTE
 app.post("/urls", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId];
@@ -142,7 +152,9 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${shortURL}`);
 });
 
-//route to handle URL redirection
+
+
+//ROUTE FOR URL REDIRECTION
 app.get("/u/:id", (req, res) => {
   //get shortURl: from req
   const shortURL = req.params.id;
@@ -156,7 +168,9 @@ app.get("/u/:id", (req, res) => {
     res.redirect(urlData.longURL);
     });
 
-//home route
+
+
+//HOME ROUTE
 app.get("/", (req, res) => {
   const userId = req.session.user_id;
   const user = users[userId] || null;
@@ -164,18 +178,24 @@ app.get("/", (req, res) => {
   res.render("urls_index", { user, error });
 });
 
-//JSON endpoint
+
+
+//JSON ENDPOINT
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-//hello route
+
+
+//HELLO ROUTE
 app.get("/hello", (req, res) => {
   const templateVars = { user: users[req.session.user_id] || "" };
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-//route for URL deletion
+
+
+//URL DELETION ROUTE
 app.post("/urls/:id/delete", (req, res) => {
   const userId = req.session.user_id;
   const id = req.params.id;
@@ -193,27 +213,9 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-//route for URL update
-app.post("/urls/:id/update", (req, res) => {
-  const userId = req.session.user_id;
-  const id = req.params.id
-  const urlData = urlDatabase[id];
 
-  //check if user is logged in
-  if (!userId || !users[userId]) {
-    return res.status(401).send("Must be logged in to edit Urls")
-  }
 
-  if (!urlData || urlData.userID !== userId) {
-    return res.status(403).send("This url is taken, you cannot edit this URL.")
-  }
-
-  const newLongURL = req.body.longURL;
-  urlDatabase[id].longURL = newLongURL;
-  res.redirect(`/urls/${id}`);
-});
-
-//get /login endpoint
+//GET /LOGIN ROUTE
 app.get("/login", (req, res) => {
   const userId = req.session.user_id;
   if (userId && users[userId]) {
@@ -222,6 +224,8 @@ app.get("/login", (req, res) => {
   const templateVars = { user: null };
   res.render("login", templateVars);
 });
+
+
 
 //ROUTE FOR LOGIN
 app.post("/login", (req, res) => {
@@ -238,11 +242,15 @@ app.post("/login", (req, res) => {
   }
   });
 
-//route for logout
+
+
+//ROUTE FOR LOGOUT
 app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect('/login');
 });
+
+
 
 //ROUTE FOR REGISTRATION
 app.get("/register", (req, res) => {
@@ -254,7 +262,9 @@ app.get("/register", (req, res) => {
   res.render("register", templateVars);
 });
 
-//post /register endpoint 
+
+
+//POST /REGISTER ENDPOINT
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -267,7 +277,7 @@ app.post("/register", (req, res) => {
     });
   }
 
-  //check if email exists + incorporate getuserbyemail from helper.js
+  //check if email exists + incorporate getuserbyemail 
  const currentUser = getUserByEmail(email, users);
  if (currentUser) {
   return res.status(400).render("register", {
